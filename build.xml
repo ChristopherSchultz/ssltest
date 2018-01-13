@@ -26,7 +26,8 @@
             srcdir="${src.java.dir}"
        deprecation="${javac.deprecation}"
        classpathref="compile.classpath"
-             debug="${javac.debuglevel}"
+             debug="${javac.debug}"
+        debuglevel="${javac.debuglevel}"
             source="${javac.src.spec}"
             target="${javac.target.spec}"
  includeAntRuntime="false">
