@@ -83,6 +83,7 @@ public class SSLTest
         System.out.println("-truststorepassword pass     Sets the password for the trust store");
         System.out.println("-truststorealgorithm alg     Sets the algorithm for the trust store");
         System.out.println("-truststoreprovider provider Sets the crypto provider for the trust store");
+        System.out.println("-crlfilename                 Sets the CRL filename to use for the trust store");
 
         System.out.println("-no-check-certificate        Ignores certificate errors");
         System.out.println("-no-verify-hostname          Ignores hostname mismatches");
@@ -163,6 +164,8 @@ public class SSLTest
                 trustStoreProvider = args[++argIndex];
             else if("-truststorealgorithm".equals(arg))
                 trustStoreAlgorithm = args[++argIndex];
+            else if("-crlfilename".equals(arg))
+                crlFilename = args[++argIndex];
             else if("-keystore".equals(arg))
                 keyStoreFilename = args[++argIndex];
             else if("-keystoretype".equals(arg))
@@ -240,7 +243,7 @@ public class SSLTest
             if(null == trustStoreType)
                 trustStoreType = "JKS";
 
-            trustManagers = SSLUtils.getTrustManagers(trustStoreFilename, trustStorePassword, trustStoreType, trustStoreProvider, trustStoreAlgorithm, null, crlFilename);            
+            trustManagers = SSLUtils.getTrustManagers(trustStoreFilename, trustStorePassword, trustStoreType, trustStoreProvider, trustStoreAlgorithm, null, crlFilename);
         }
         else
             trustManagers = null;
