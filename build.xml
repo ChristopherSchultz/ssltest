@@ -6,11 +6,11 @@
     <property file="build.properties" />
   </target>
 
-  <target name="clean" depends="init">
+  <target name="clean" depends="init" description="Removes compiled classes, JAR files, etc.">
     <delete dir="${build.dir}" />
   </target>
 
-  <target name="compile" depends="init">
+  <target name="compile" depends="init" description="Builds source files into class files.">
     <mkdir dir="${build.classes.dir}" />
     <javac destdir="${build.classes.dir}"
             srcdir="${src.java.dir}"
@@ -23,7 +23,7 @@
     </javac>
   </target>
 
-  <target name="jar" depends="compile">
+  <target name="jar" depends="compile" description="Assembles an executable JAR file from class files.">
     <jar destfile="${build.dir}/${jar.file}" compress="true"
         basedir="${build.classes.dir}" includes="**/*.class">
       <manifest>
@@ -32,6 +32,6 @@
     </jar>
   </target>
 
-  <target name="dist" depends="clean, jar" />
+  <target name="dist" depends="clean, jar" description="Cleans and rebuilds everything" />
 </project>
 

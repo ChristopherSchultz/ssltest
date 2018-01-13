@@ -7,7 +7,7 @@ The code is meant to be readable, reusable, and instructive. Many TLS-related op
 
 Note that this code merely *connects* to the server and completes a TLS handshake. It does not perform e.g. any HTTP request or handle any response. That means that it will be equally useful for testing a web server's HTTPS connector as it will be for testing an LDAP server's LDAPS connector.
 
-There are two .java source files and a single build.sh script to compile the .java source and bundle it into an executable JAR file, which an be run like this:
+There are two .java source files which contain everything. You can use Apache `ant` or the `build.sh` script to compile the .java source and bundle it into an executable JAR file, which an be run like this:
 
 ```
 $ java -jar ssltest.jar [options]
