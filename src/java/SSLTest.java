@@ -717,7 +717,7 @@ outDone = true;
                                              int readTimeout,
                                              int connectTimeout,
                                              SSLSocketFactory sf)
-        throws SocketException, IOException
+        throws IOException
     {
         //
         // Note: SSLSocketFactory has several create() methods.

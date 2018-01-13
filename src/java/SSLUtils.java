@@ -221,7 +221,7 @@ public class SSLUtils
         }
         @Override
         public Socket createSocket(String host, int port)
-            throws IOException, UnknownHostException
+            throws IOException
         {
             return customize(_base.createSocket(host, port));
         }
@@ -234,7 +234,7 @@ public class SSLUtils
         @Override
         public Socket createSocket(String host, int port,
                                    InetAddress localHost, int localPort)
-            throws IOException, UnknownHostException
+            throws IOException
         {
             return customize(_base.createSocket(host, port, localHost, localPort));
         }
