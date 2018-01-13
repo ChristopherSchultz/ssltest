@@ -58,5 +58,35 @@
     <Method name="createSSLSocket" />
     <Bug pattern="UNENCRYPTED_SOCKET" />
   </Match>
-</FindBugsFilter>
 
+  <!-- Having these methods accept Socket instead of SSLSocket makes for cleaner code. -->
+  <Match>
+    <Or>
+      <Class name="net.christopherschultz.ssltest.SSLUtils$CustomSSLSocketFactory" />
+      <Class name="net.christopherschultz.ssltest.SSLUtils$CustomSSLServerSocketFactory" />
+    </Or>
+    <Method name="customize" />
+    <Bug pattern="PDP_POORLY_DEFINED_PARAMETER" />
+  </Match>
+
+  <!-- It's okay to dump stack traces to the console. -->
+  <Match>
+    <Class name="net.christopherschultz.ssltest.SSLTest" />
+    <Method name="main" />
+    <Bug pattern="IMC_IMMATURE_CLASS_PRINTSTACKTRACE" />
+  </Match>
+
+  <!-- It's okay that everything happens in the main() method. -->
+  <Match>
+    <Class name="net.christopherschultz.ssltest.SSLTest" />
+    <Method name="main" />
+    <Bug pattern="CC_CYCLOMATIC_COMPLEXITY" />
+  </Match>
+
+  <!-- getCRLs is intended to be a library method, and should be public. -->
+  <Match>
+    <Class name="net.christopherschultz.ssltest.SSLUtils" />
+    <Method name="getCRLs" />
+    <Bug pattern="OPM_OVERLY_PERMISSIVE_METHOD" />
+  </Match>
+</FindBugsFilter>
