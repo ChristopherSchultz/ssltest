@@ -81,9 +81,11 @@ public class SSLUtils
     protected static class TrustAllTrustManager
         implements X509TrustManager
     {
+        private static final X509Certificate[] EMPTY = new X509Certificate[0];
+
         @Override
         public X509Certificate[] getAcceptedIssuers() {
-            return null;
+            return EMPTY;
         }
         @Override
         public void checkClientTrusted(X509Certificate[] certs,
@@ -195,7 +197,7 @@ public class SSLUtils
         public String[] getSupportedCipherSuites() {
             return _base.getSupportedCipherSuites();
         }
-        
+
         private SSLSocket customize(Socket s)
         {
             SSLSocket socket = (SSLSocket)s;
