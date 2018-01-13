@@ -57,7 +57,7 @@
       FindBugs not configured: ${findbugs.home} does not point to a valid FindBugs distribution.
     </fail>
 
-    <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask">
+    <taskdef resource="edu/umd/cs/findbugs/anttask/tasks.properties">
       <classpath>
         <fileset dir="${findbugs.home}/lib">
           <patternset refid="jar.file.pattern" />
@@ -80,6 +80,5 @@
       </fileset>
     </findbugs>
   </target>
-
 </project>
 
