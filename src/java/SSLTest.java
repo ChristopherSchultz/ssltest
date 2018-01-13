@@ -600,8 +600,9 @@ catch (SSLPeerUnverifiedException e)
                     System.out.println("Attempting to check certificate:");
                     for(Certificate cert : socket.getSession().getPeerCertificates())
                     {
-                        System.out.println("Certificate: " + cert.getType());
-                        if("X.509".equals(cert.getType()))
+                        String certType = cert.getType();
+                        System.out.println("Certificate: " + certType);
+                        if("X.509".equals(certType))
                         {
                             X509Certificate x509 = (X509Certificate)cert;
                             System.out.println("Subject: " + x509.getSubjectDN());
