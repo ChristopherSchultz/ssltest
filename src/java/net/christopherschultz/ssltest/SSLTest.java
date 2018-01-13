@@ -336,7 +336,7 @@ public class SSLTest
 
         System.out.println("Testing server " + host + ":" + port);
 
-        SecureRandom rand = new SecureRandom();
+        SecureRandom rand = SecureRandom.getInstance("NativePRNG");
 
         String reportFormat = "%9s %8s %s%n";
         String errorReportFormat = "%9s %8s %s %s%n";
