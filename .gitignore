@@ -22,6 +22,10 @@ build-local.properties
 *.tar.gz
 *.rar
 
+# Editor temp files
+# vi
+.*.sw*
+
 # Eclipse Project files
 .project
 .classpath
