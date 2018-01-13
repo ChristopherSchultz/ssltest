@@ -67,7 +67,7 @@ import javax.net.ssl.TrustManager;
  */
 public class SSLTest
 {
-    public static void usage()
+    private static void usage()
     {
         System.out.println("Usage: java " + SSLTest.class + " [opts] host[:port]");
         System.out.println();
