@@ -4,15 +4,15 @@
   <Match>
     <Or>
       <And>
-        <Class name="SSLUtils$CustomSSLSocketFactory" />
+        <Class name="net.christopherschultz.ssltest.SSLUtils$CustomSSLSocketFactory" />
         <Method name="customize" />
       </And>
       <And>
-        <Class name="SSLUtils$CustomSSLServerSocketFactory" />
+        <Class name="net.christopherschultz.ssltest.SSLUtils$CustomSSLServerSocketFactory" />
         <Method name="customize" />
       </And>
       <And>
-        <Class name="SSLTest" />
+        <Class name="net.christopherschultz.ssltest.SSLTest" />
         <Method name="createSSLSocket" />
       </And>
     </Or>
@@ -24,7 +24,7 @@
 
   <!-- Checking the return value from InetAddress.getAllByName for null is appropriate. -->
   <Match>
-    <Class name="SSLTest" />
+    <Class name="net.christopherschultz.ssltest.SSLTest" />
     <Method name="main" />
     <Local name="iaddrs" />
     <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE" />
@@ -32,7 +32,7 @@
 
   <!-- It's okay to load files on behalf of the user. That's the whole point. -->
   <Match>
-    <Class name="SSLUtils" />
+    <Class name="net.christopherschultz.ssltest.SSLUtils" />
     <Or>
       <Method name="getCRLs" />
       <Method name="getStore" />
@@ -42,19 +42,19 @@
 
   <!-- TrustAllTrustManager is intended to be a "weak" TrustManager. -->
   <Match>
-    <Class name="SSLUtils$TrustAllTrustManager" />
+    <Class name="net.christopherschultz.ssltest.SSLUtils$TrustAllTrustManager" />
     <Bug pattern="WEAK_TRUST_MANAGER" />
   </Match>
 
   <!-- VerifyAllHostnameVerifier is intended to be a "weak" hostname verifier. -->
   <Match>
-    <Class name="SSLUtils$VerifyAllHostnameVerifier" />
+    <Class name="net.christopherschultz.ssltest.SSLUtils$VerifyAllHostnameVerifier" />
     <Bug pattern="WEAK_HOSTNAME_VERIFIER" />
   </Match>
 
   <!-- SSLTest.createSSLSocket first creates a non-encrypted socket, then adds encryption to it. -->
   <Match>
-    <Class name="SSLTest" />
+    <Class name="net.christopherschultz.ssltest.SSLTest" />
     <Method name="createSSLSocket" />
     <Bug pattern="UNENCRYPTED_SOCKET" />
   </Match>
