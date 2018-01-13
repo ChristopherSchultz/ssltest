@@ -45,6 +45,8 @@ import java.security.cert.PKIXBuilderParameters;
 import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.HostnameVerifier;
@@ -69,6 +71,8 @@ import javax.net.ssl.X509TrustManager;
  */
 public class SSLUtils
 {
+    private static final Logger log = Logger.getLogger(SSLUtils.class.getName());
+
     protected static class VerifyAllHostnameVerifier
         implements HostnameVerifier
     {
@@ -496,7 +500,7 @@ public class SSLUtils
         finally
         {
             if(is != null) try{ is.close(); }
-            catch(IOException ioe) { ioe.printStackTrace(); }
+            catch(IOException ioe) { log.log(Level.SEVERE, "Cannot close CRL file", ioe); }
         }
         return crls;
     }
@@ -548,7 +552,7 @@ public class SSLUtils
         finally
         {
             if(null != in) try { in.close(); }
-            catch (IOException ioe) { ioe.printStackTrace(); }
+            catch (IOException ioe) { log.log(Level.SEVERE, "Cannot close store file", ioe); }
         }
     }
 }
