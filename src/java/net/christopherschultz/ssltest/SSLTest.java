@@ -345,6 +345,8 @@ public class SSLTest
         if(connectOnly)
             sslEnabledProtocols = new String[0];
 
+        HashSet<String> cipherSuites = new HashSet<String>();
+
         for(String protocol : sslEnabledProtocols)
         {
             String[] supportedCipherSuites = null;
@@ -366,7 +368,7 @@ public class SSLTest
             }
 
             // Restrict cipher suites to those specified by sslCipherSuites
-            HashSet<String> cipherSuites = new HashSet<String>();
+            cipherSuites.clear();
             cipherSuites.addAll(Arrays.asList(supportedCipherSuites));
             if(null != sslCipherSuites)
                 cipherSuites.retainAll(Arrays.asList(sslCipherSuites));
