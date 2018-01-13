@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<FindBugsFilter>
+  <!-- Unchecked casts in these situations are okay: ClassCastException is appropriate -->
+  <Match>
+    <Or>
+      <And>
+        <Class name="SSLUtils$CustomSSLSocketFactory" />
+        <Method name="customize" />
+      </And>
+      <And>
+        <Class name="SSLUtils$CustomSSLServerSocketFactory" />
+        <Method name="customize" />
+      </And>
+      <And>
+        <Class name="SSLTest" />
+        <Method name="createSSLSocket" />
+      </And>
+    </Or>
+    <Or>
+      <Bug pattern="BC_UNCONFIRMED_CAST" />
+      <Bug pattern="BC_UNCONFIRMED_CAST_OF_RETURN_VALUE" />
+    </Or>
+  </Match>
+
+  <!-- Checking the return value from InetAddress.getAllByName for null is appropriate. -->
+  <Match>
+    <Class name="SSLTest" />
+    <Method name="main" />
+    <Local name="iaddrs" />
+    <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE" />
+  </Match>
+
+</FindBugsFilter>
+
