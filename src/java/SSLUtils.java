@@ -184,9 +184,9 @@ public class SSLUtils
             else
                 _sslEnabledProtocols = sslEnabledProtocols.clone();
             if(null == sslCipherSuites || 0 == sslCipherSuites.length)
-                _sslCipherSuites = getDefaultCipherSuites();
+                _sslCipherSuites = base.getDefaultCipherSuites();
             else if(1 == sslCipherSuites.length && "ALL".equalsIgnoreCase(sslCipherSuites[0]))
-                _sslCipherSuites = getSupportedCipherSuites();
+                _sslCipherSuites = base.getSupportedCipherSuites();
             else
                 _sslCipherSuites = sslCipherSuites.clone();
         }
@@ -264,15 +264,16 @@ public class SSLUtils
                                             String[] sslEnabledProtocols,
                                             String[] sslCipherSuites)
         {
+            super();
             _base = base;
             if(null == sslEnabledProtocols)
                 _sslEnabledProtocols = null;
             else
                 _sslEnabledProtocols = sslEnabledProtocols.clone();
             if(null == sslCipherSuites || 0 == sslCipherSuites.length)
-                _sslCipherSuites = getDefaultCipherSuites();
+                _sslCipherSuites = base.getDefaultCipherSuites();
             else if(1 == sslCipherSuites.length && "ALL".equalsIgnoreCase(sslCipherSuites[0]))
-                _sslCipherSuites = getSupportedCipherSuites();
+                _sslCipherSuites = base.getSupportedCipherSuites();
             else
                 _sslCipherSuites = sslCipherSuites.clone();
         }
