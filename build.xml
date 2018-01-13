@@ -39,7 +39,7 @@
     <jar destfile="${build.dir}/${jar.file}" compress="true"
         basedir="${build.classes.dir}" includes="**/*.class">
       <manifest>
-        <attribute name="Main-Class" value="SSLTest" />
+        <attribute name="Main-Class" value="net.christopherschultz.ssltest.SSLTest" />
       </manifest>
     </jar>
   </target>
