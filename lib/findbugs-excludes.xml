@@ -30,5 +30,33 @@
     <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE" />
   </Match>
 
+  <!-- It's okay to load files on behalf of the user. That's the whole point. -->
+  <Match>
+    <Class name="SSLUtils" />
+    <Or>
+      <Method name="getCRLs" />
+      <Method name="getStore" />
+    </Or>
+    <Bug pattern="PATH_TRAVERSAL_IN" />
+  </Match>
+
+  <!-- TrustAllTrustManager is intended to be a "weak" TrustManager. -->
+  <Match>
+    <Class name="SSLUtils$TrustAllTrustManager" />
+    <Bug pattern="WEAK_TRUST_MANAGER" />
+  </Match>
+
+  <!-- VerifyAllHostnameVerifier is intended to be a "weak" hostname verifier. -->
+  <Match>
+    <Class name="SSLUtils$VerifyAllHostnameVerifier" />
+    <Bug pattern="WEAK_HOSTNAME_VERIFIER" />
+  </Match>
+
+  <!-- SSLTest.createSSLSocket first creates a non-encrypted socket, then adds encryption to it. -->
+  <Match>
+    <Class name="SSLTest" />
+    <Method name="createSSLSocket" />
+    <Bug pattern="UNENCRYPTED_SOCKET" />
+  </Match>
 </FindBugsFilter>
 
