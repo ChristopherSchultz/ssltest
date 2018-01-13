@@ -1,3 +1,7 @@
+# Local build files
+build-local.properties
+/doc/
+
 # Compiled class file
 *.class
 
