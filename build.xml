@@ -3,18 +3,29 @@
   <target name="init">
     <tstamp />
 
+    <property file="build-local.properties" />
     <property file="build.properties" />
+
+    <patternset id="jar.file.pattern" includes="**/*.jar" />
+    <path id="compile.classpath">
+      <fileset dir="${lib.build.dir}">
+        <patternset refid="jar.file.pattern" />
+      </fileset>
+    </path>
   </target>
 
   <target name="clean" depends="init" description="Removes compiled classes, JAR files, etc.">
     <delete dir="${build.dir}" />
+    <delete dir="${doc.dir}" />
   </target>
 
   <target name="compile" depends="init" description="Builds source files into class files.">
     <mkdir dir="${build.classes.dir}" />
+    <mkdir dir="${lib.build.dir}" /><!-- Just in case -->
     <javac destdir="${build.classes.dir}"
             srcdir="${src.java.dir}"
        deprecation="${javac.deprecation}"
+       classpathref="compile.classpath"
              debug="${javac.debug}"
             source="${javac.src.spec}"
             target="${javac.target.spec}"
@@ -33,5 +44,40 @@
   </target>
 
   <target name="dist" depends="clean, jar" description="Cleans and rebuilds everything" />
+
+  <target name="findbugs" depends="compile" description="Runs UMD's FindBugs against the source.">
+    <condition property="findbugs-present">
+      <and>
+        <isset property="findbugs.home" />
+        <available file="${findbugs.home}" type="dir" />
+      </and>
+    </condition>
+    <fail unless="findbugs-present">
+      FindBugs not configured: ${findbugs.home} does not point to a valid FindBugs distribution.
+    </fail>
+
+    <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask">
+      <classpath>
+        <fileset dir="${findbugs.home}/lib">
+          <patternset refid="jar.file.pattern" />
+        </fileset>
+      </classpath>
+    </taskdef>
+
+    <mkdir dir="${findbugs.dir}" />
+    <findbugs home="${findbugs.home}"
+              output="${findbugs.output}"
+              outputFile="${findbugs.outputFile}"
+              excludeFilter="${findbugs.excludeFilter}"
+                          jvmargs="-Xmx64M"
+              >
+      <auxClasspath refid="compile.classpath" />
+      <sourcePath path="${src.java.dir}" />
+      <fileset dir="${build.classes.dir}">
+        <include name="**/*.class" />
+      </fileset>
+    </findbugs>
+  </target>
+
 </project>
 
