@@ -730,9 +730,7 @@ outDone = true;
         sock.connect(address, connectTimeout);
 
         // Wrap plain socket in an SSL socket
-        SSLSocket socket = (SSLSocket)sf.createSocket(sock, host, port, true);
-        
-        return socket;
+        return (SSLSocket)sf.createSocket(sock, host, port, true);
     }
 
     private static String[] getJVMSupportedCipherSuites(String protocol, SecureRandom rand)
