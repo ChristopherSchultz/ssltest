@@ -312,7 +312,7 @@ public class SSLTest
                 {
                     String key = (String)prop;
                     if(key.startsWith("SSLContext.")
-                       && !key.equals("SSLContext.Default")
+                       && !"SSLContext.Default".equals(key)
                        && key.matches(".*[0-9].*"))
                         protocols.add(key.substring("SSLContext.".length()));
                     else if(key.startsWith("Alg.Alias.SSLContext.")
