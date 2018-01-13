@@ -333,8 +333,8 @@ public class SSLTest
 
         SecureRandom rand = new SecureRandom();
 
-        String reportFormat = "%9s %8s %s\n";
-        String errorReportFormat = "%9s %8s %s %s\n";
+        String reportFormat = "%9s %8s %s%n";
+        String errorReportFormat = "%9s %8s %s %s%n";
         System.out.print(String.format(reportFormat, "Supported", "Protocol", "Cipher"));
 
         if(connectOnly)
