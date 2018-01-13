@@ -1,0 +1,37 @@
+<?xml version="1.0" ?>
+<project name="ssltest">
+  <target name="init">
+    <tstamp />
+
+    <property file="build.properties" />
+  </target>
+
+  <target name="clean" depends="init">
+    <delete dir="${build.dir}" />
+  </target>
+
+  <target name="compile" depends="init">
+    <mkdir dir="${build.classes.dir}" />
+    <javac destdir="${build.classes.dir}"
+            srcdir="${src.java.dir}"
+       deprecation="${javac.deprecation}"
+             debug="${javac.debug}"
+            source="${javac.src.spec}"
+            target="${javac.target.spec}"
+ includeAntRuntime="false">
+      <compilerarg value="-Xlint:-options" />
+    </javac>
+  </target>
+
+  <target name="jar" depends="compile">
+    <jar destfile="${build.dir}/${jar.file}" compress="true"
+        basedir="${build.classes.dir}" includes="**/*.class">
+      <manifest>
+        <attribute name="Main-Class" value="SSLTest" />
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="dist" depends="clean, jar" />
+</project>
+
