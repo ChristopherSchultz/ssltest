@@ -53,16 +53,16 @@ import javax.net.ssl.TrustManager;
 
 /**
  * A driver class to test a server's SSL/TLS support.
- * 
+ *
  * Usage: java SSLTest [opts] host[:port]
- * 
+ *
  * Try "java SSLTest -h" for help.
- * 
+ *
  * This tester will attempts to handshake with the target host with all
  * available protocols and ciphers and report which ones were accepted and
  * which were rejected. An HTTP connection is never fully made, so these
  * connections should not flood the host's access log with entries.
- * 
+ *
  * @author Christopher Schultz
  */
 public class SSLTest
@@ -101,6 +101,11 @@ public class SSLTest
     public static void main(String[] args)
         throws Exception
     {
+        // Enable all algorithms + protocols
+        // System.setProperty("jdk.tls.client.protocols", "SSLv2Hello,SSLv3,TLSv1,TLSv1.1,TLSv1.2");
+        Security.setProperty("jdk.tls.disabledAlgorithms", "");
+        Security.setProperty("crypto.policy", "unlimited"); // For Java 9+
+
         int connectTimeout = 0; // default = infinite
         int readTimeout = 1000;
 
@@ -201,7 +206,7 @@ public class SSLTest
                 System.exit(1);
             }
         }
-        
+
         if(argIndex >= args.length)
         {
             System.err.println("Unexpected additional arguments: "
@@ -259,11 +264,6 @@ public class SSLTest
             port = Integer.parseInt(host.substring(pos + 1));
             host = host.substring(0, pos);
         }
-
-        // Enable all algorithms + protocols
-//        System.setProperty("jdk.tls.client.protocols", "SSLv2Hello,SSLv3,TLSv1,TLSv1.1,TLSv1.2");
-        Security.setProperty("jdk.tls.disabledAlgorithms", "");
-        Security.setProperty("crypto.policy", "unlimited"); // For Java 9+
 
         try
         {
@@ -628,7 +628,7 @@ catch (SSLPeerUnverifiedException e)
                 System.out.println("Error during connection handshake for protocols "
                                    + supportedProtocols
                                    + ": server likely does not support any of these protocols.");
-                
+
                 if(showCerts)
                     System.out.println("Unable to show server certificate without a successful handshake.");
             }
@@ -668,8 +668,8 @@ catch (SSLPeerUnverifiedException e)
         {
             int read;
 */
-/*            
-            if(!outDone) { 
+/*
+            if(!outDone) {
                 read = in.read(buf);
                 if(-1 != read) {
                     buf.flip();
@@ -755,11 +755,11 @@ outDone = true;
     static String toHexString(byte[] bytes)
     {
         StringBuilder sb = new StringBuilder(bytes.length * 2);
-        
+
         for(byte b : bytes)
             sb.append(hexChars[(b >> 4) & 0x0f])
               .append(hexChars[b & 0x0f]);
-        
+
         return sb.toString();
     }
 }
