@@ -24,7 +24,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyManagementException;
@@ -54,8 +53,6 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -115,25 +112,6 @@ public class SSLUtils
     public static TrustManager[] getTrustAllCertsTrustManagers()
     {
         return trustAllCerts.clone();
-    }
-    
-    /**
-     * Configures SSLSocketFactory for Java's HttpsURLConnection.
-     */
-    public static void configureHttpsURLConnection(String protocol,
-                                                   String[] sslEnabledProtocols,
-                                                   String[] sslCipherSuites,
-                                                   SecureRandom random,
-                                                   TrustManager[] tms,
-                                                   KeyManager[] kms)
-        throws NoSuchAlgorithmException, KeyManagementException
-    {
-        HttpsURLConnection.setDefaultSSLSocketFactory(getSSLSocketFactory(protocol,
-                                                                          sslEnabledProtocols,
-                                                                          sslCipherSuites,
-                                                                          random,
-                                                                          tms,
-                                                                          kms));
     }
     
     /**
@@ -250,114 +228,6 @@ public class SSLUtils
         {
             return customize(_base.createSocket(address, port, localAddress, localPort));
         }
-    }
-
-    /**
-     * In order to customize the specific enabled protocols and cipher suites,
-     * a customized SSLSocketFactory must be used.
-     * 
-     * This is just a wrapper around that customization.
-     */
-    public static class CustomSSLServerSocketFactory
-        extends javax.net.ssl.SSLServerSocketFactory
-    {
-        private final String[] _sslEnabledProtocols;
-        private final String[] _sslCipherSuites;
-        private final SSLServerSocketFactory _base;
-
-        public CustomSSLServerSocketFactory(SSLServerSocketFactory base,
-                                            String[] sslEnabledProtocols,
-                                            String[] sslCipherSuites)
-        {
-            super();
-            _base = base;
-            if(null == sslEnabledProtocols)
-                _sslEnabledProtocols = null;
-            else
-                _sslEnabledProtocols = sslEnabledProtocols.clone();
-            if(null == sslCipherSuites || 0 == sslCipherSuites.length)
-                _sslCipherSuites = base.getDefaultCipherSuites();
-            else if(1 == sslCipherSuites.length && "ALL".equalsIgnoreCase(sslCipherSuites[0]))
-                _sslCipherSuites = base.getSupportedCipherSuites();
-            else
-                _sslCipherSuites = sslCipherSuites.clone();
-        }
-
-        public String[] getDefaultCipherSuites() {
-            return _base.getDefaultCipherSuites();
-        }
-        public String[] getSupportedCipherSuites() {
-            return _base.getSupportedCipherSuites();
-        }
-        
-        private SSLServerSocket customize(ServerSocket s)
-        {
-            SSLServerSocket socket = (SSLServerSocket)s;
-
-            if(null != _sslEnabledProtocols)
-                socket.setEnabledProtocols(_sslEnabledProtocols);
-
-            socket.setEnabledCipherSuites(_sslCipherSuites);
-
-            return socket;
-        }
-
-        @Override
-        public SSLServerSocket createServerSocket()
-            throws IOException
-        {
-            return customize(_base.createServerSocket());
-        }
-
-        @Override
-        public SSLServerSocket createServerSocket(int port)
-            throws IOException
-        {
-            return customize(_base.createServerSocket(port));
-        }
-
-        @Override
-        public SSLServerSocket createServerSocket(int port, int backlog)
-            throws IOException
-        {
-            return customize(_base.createServerSocket(port, backlog));
-        }
-
-        @Override
-        public SSLServerSocket createServerSocket(int port, int backlog, InetAddress ifAddress)
-            throws IOException
-        {
-            return customize(_base.createServerSocket(port, backlog, ifAddress));
-        }
-    }
-
-    /**
-     * Creates an SSLSocketFactory that supports only the specified protocols
-     * and ciphers.
-     */
-    public static SSLServerSocketFactory getSSLServerSocketFactory(String protocol,
-                                                                   String[] sslEnabledProtocols,
-                                                                   String[] sslCipherSuites,
-                                                                   SecureRandom random,
-                                                                   TrustManager[] tms)
-        throws NoSuchAlgorithmException, KeyManagementException
-    {
-        SSLContext sc = SSLContext.getInstance(protocol);
-
-//        System.out.println("Wanted protocol: " + protocol);
-//        System.out.println("Got protocol:    " + sc.getProtocol());
-
-        sc.init(null, tms, random);
-
-        SSLServerSocketFactory sf = sc.getServerSocketFactory();
-
-        if(null != sslEnabledProtocols
-           || null != sslCipherSuites)
-            sf = new CustomSSLServerSocketFactory(sf,
-                                                  sslEnabledProtocols,
-                                                  sslCipherSuites);
-
-        return sf;
     }
 
     //
@@ -536,8 +406,6 @@ public class SSLUtils
                 ks = KeyStore.getInstance(storeType);
             else
                 ks = KeyStore.getInstance(storeType, storeProvider);
-
-            // TODO: Explicitly check for PKCS11?
 
             in = new FileInputStream(storeFilename);
 
