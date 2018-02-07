@@ -8,10 +8,6 @@
         <Method name="customize" />
       </And>
       <And>
-        <Class name="net.christopherschultz.ssltest.SSLUtils$CustomSSLServerSocketFactory" />
-        <Method name="customize" />
-      </And>
-      <And>
         <Class name="net.christopherschultz.ssltest.SSLTest" />
         <Method name="createSSLSocket" />
       </And>
@@ -63,7 +59,6 @@
   <Match>
     <Or>
       <Class name="net.christopherschultz.ssltest.SSLUtils$CustomSSLSocketFactory" />
-      <Class name="net.christopherschultz.ssltest.SSLUtils$CustomSSLServerSocketFactory" />
     </Or>
     <Method name="customize" />
     <Bug pattern="PDP_POORLY_DEFINED_PARAMETER" />

@@ -226,6 +226,7 @@ public class SSLTest
             System.exit(1);
         }
 
+        // TODO: Does this actually do anything?
         if(disableHostnameVerification)
             SSLUtils.disableSSLHostnameVerification();
 
