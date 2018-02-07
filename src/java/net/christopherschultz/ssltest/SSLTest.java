@@ -33,11 +33,13 @@ import java.security.Provider;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.crypto.Cipher;
@@ -50,6 +52,8 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
+
+import sun.security.validator.ValidatorException;
 
 /**
  * A driver class to test a server's SSL/TLS support.
@@ -87,8 +91,10 @@ public class SSLTest
         System.out.println("-truststoreprovider provider Sets the crypto provider for the trust store");
         System.out.println("-crlfilename                 Sets the CRL filename to use for the trust store");
 
-        System.out.println("-no-check-certificate        Ignores certificate errors");
-        System.out.println("-no-verify-hostname          Ignores hostname mismatches");
+        System.out.println("-check-certificate           Checks certificate trust (default: false)");
+        System.out.println("-no-check-certificate        Ignores certificate errors (default: true)");
+        System.out.println("-verify-hostname             Verifies certificate hostname (default: false)");
+        System.out.println("-no-verify-hostname          Ignores hostname mismatches (default: true)");
 
         System.out.println("-showsslerrors               Show SSL/TLS error details");
         System.out.println("-showhandshakeerrors         Show SSL/TLS handshake error details");
@@ -149,8 +155,12 @@ public class SSLTest
                 break;
             else if("-no-check-certificate".equals(arg))
                 disableCertificateChecking = true;
+            else if("-check-certificate".equals(arg))
+                disableCertificateChecking = false;
             else if("-no-verify-hostname".equals(arg))
                 disableHostnameVerification = true;
+            else if("-verify-hostname".equals(arg))
+                disableHostnameVerification = false;
             else if("-sslprotocol".equals(arg))
                 sslProtocol = args[++argIndex];
             else if("-enabledprotocols".equals(arg))
@@ -347,8 +357,12 @@ public class SSLTest
 
         HashSet<String> cipherSuites = new HashSet<String>();
 
-        for(String protocol : sslEnabledProtocols)
+        boolean stop = false;
+
+        for(int i=0; i<sslEnabledProtocols.length && !stop; ++i)
         {
+            String protocol = sslEnabledProtocols[i];
+
             String[] supportedCipherSuites = null;
 
             try
@@ -380,8 +394,9 @@ public class SSLTest
                 continue; // Go to the next protocol
             }
 
-            for(String cipherSuite : cipherSuites)
+            for(Iterator<String> j=cipherSuites.iterator(); j.hasNext() && !stop; )
             {
+                String cipherSuite = j.next();
                 String status;
 
                 SSLSocketFactory sf = SSLUtils.getSSLSocketFactory(protocol,
@@ -497,10 +512,16 @@ catch (SSLPeerUnverifiedException e)
                 }
                 catch (SSLHandshakeException she)
                 {
-                    if(showHandshakeErrors)
-                        error = "SHE: " + she.getLocalizedMessage();
+                    Throwable cause = she.getCause();
+                    if(null != cause && cause instanceof ValidatorException) {
+                        status = "Untrusted";
+                        error = "Server certificate is not trusted. All other connections will fail similarly.";
+                        stop = true;
+                    } else
+                        status = "Rejected";
 
-                    status = "Rejected";
+                    if(showHandshakeErrors)
+                        error = "SHE: " + she.getLocalizedMessage() + ", type=" + she.getClass().getName() + ", nested=" + she.getCause();
                 }
                 catch (SSLException ssle)
                 {
@@ -612,6 +633,12 @@ catch (SSLPeerUnverifiedException e)
                             System.out.println("Subject: " + x509.getSubjectDN());
                             System.out.println("Issuer: " + x509.getIssuerDN());
                             System.out.println("Serial: " + x509.getSerialNumber());
+                            try {
+                                x509.checkValidity();
+                                System.out.println("Certificate is currently valid.");
+                            } catch (CertificateException ce) {
+                                System.out.println("WARNING: certificate is not valid: " + ce.getMessage());
+                            }
                             //                   System.out.println("Signature: " + toHexString(x509.getSignature()));
                             //                   System.out.println("cert bytes: " + toHexString(cert.getEncoded()));
                             //                   System.out.println("cert bytes: " + cert.getPublicKey());
