@@ -597,6 +597,22 @@ catch (SSLPeerUnverifiedException e)
         if(null == sslCipherSuites)
             sslCipherSuites = getJVMSupportedCipherSuites(sslProtocol, rand);
 
+        // Java 10 doesn't seem to like having any DTLS protocols
+        // in the list of enabled protocols.
+        // Java 11 seems okay with DTLS being in the mix.
+        String javaVersion = System.getProperty("java.vm.specification.version", null);
+        if(null != javaVersion) {
+            double jv = Double.parseDouble(javaVersion);
+            if(jv == 10) {
+                ArrayList<String> cleansedProtocolNames = new ArrayList<String>(protocolsToTry.length);
+                for(String protocol : protocolsToTry)
+                    if(!protocol.startsWith("DTLS"))
+                        cleansedProtocolNames.add(protocol);
+
+                protocolsToTry = cleansedProtocolNames.toArray(new String[cleansedProtocolNames.size()]);
+            }
+        }
+
         SSLSocketFactory sf = SSLUtils.getSSLSocketFactory(sslProtocol,
                                                            protocolsToTry,
                                                            sslCipherSuites,
