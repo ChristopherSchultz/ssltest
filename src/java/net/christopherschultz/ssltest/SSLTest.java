@@ -78,6 +78,7 @@ public class SSLTest
         System.out.println("-sslprotocol                 Sets the SSL/TLS protocol to be used (e.g. SSL, TLS, SSLv3, TLSv1.2, etc.)");
         System.out.println("-enabledprotocols protocols  Sets individual SSL/TLS ptotocols that should be enabled");
         System.out.println("-ciphers cipherspec          A comma-separated list of SSL/TLS ciphers");
+        System.out.println("-connectonly                 Don't scan; only connect a single time");
 
         System.out.println("-keystore                    Sets the key store for connections (for TLS client certificates)");
         System.out.println("-keystoretype type           Sets the type for the key store");
@@ -345,16 +346,15 @@ public class SSLTest
         if(Integer.MAX_VALUE > Cipher.getMaxAllowedKeyLength("foo"))
             System.err.println("[warning] Client is running under LIMITED cryptographic controls. Consider installing the JCE Unlimited Strength Jurisdiction Policy Files.");
 
-        System.out.println("Testing server " + host + ":" + port);
-
         SecureRandom rand = SecureRandom.getInstance("NativePRNG");
 
-        String reportFormat = "%9s %8s %s%n";
-        String errorReportFormat = "%9s %8s %s %s%n";
-        System.out.print(String.format(reportFormat, "Supported", "Protocol", "Cipher"));
+        if(!connectOnly) {
+            System.out.println("Testing server " + host + ":" + port);
 
-        if(connectOnly)
-            sslEnabledProtocols = new String[0];
+            String reportFormat = "%9s %8s %s%n";
+            String errorReportFormat = "%9s %8s %s %s%n";
+
+            System.out.print(String.format(reportFormat, "Supported", "Protocol", "Cipher"));
 
         HashSet<String> cipherSuites = new HashSet<String>();
 
@@ -587,6 +587,7 @@ catch (SSLPeerUnverifiedException e)
                                + Arrays.asList(sslEnabledProtocols));
             System.err.println("Exiting.");
             System.exit(1);
+        }
         }
 
         // Now get generic and allow the server to decide on the protocol and cipher suite
