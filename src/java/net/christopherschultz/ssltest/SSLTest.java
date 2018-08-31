@@ -667,7 +667,8 @@ catch (SSLPeerUnverifiedException e)
                         }
                     }
 
-                    if(checkTrust((X509Certificate[])certs, trustManagers))
+                    if(certs instanceof X509TrustManager[]
+                       && checkTrust((X509Certificate[])certs, trustManagers))
                         System.out.println("Certificate chain is trusted");
                     else
                         System.out.println("Certificate chain is UNTRUSTED");
