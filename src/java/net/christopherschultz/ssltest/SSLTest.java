@@ -52,8 +52,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
-
-import sun.security.validator.ValidatorException;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * A driver class to test a server's SSL/TLS support.
@@ -514,7 +513,7 @@ catch (SSLPeerUnverifiedException e)
                 catch (SSLHandshakeException she)
                 {
                     Throwable cause = she.getCause();
-                    if(null != cause && cause instanceof ValidatorException) {
+                    if(null != cause && cause instanceof CertificateException) {
                         status = "Untrusted";
                         error = "Server certificate is not trusted. All other connections will fail similarly.";
                         stop = true;
@@ -640,8 +639,9 @@ catch (SSLPeerUnverifiedException e)
 
                 if(showCerts)
                 {
-                    System.out.println("Attempting to check certificate:");
-                    for(Certificate cert : socket.getSession().getPeerCertificates())
+                    System.out.println("Attempting to check certificates:");
+                    Certificate[] certs = socket.getSession().getPeerCertificates();
+                    for(Certificate cert : certs)
                     {
                         String certType = cert.getType();
                         System.out.println("Certificate: " + certType);
@@ -666,6 +666,11 @@ catch (SSLPeerUnverifiedException e)
                             System.out.println("Unknown certificate type (" + cert.getType() + "): " + cert);
                         }
                     }
+
+                    if(checkTrust((X509Certificate[])certs, trustManagers))
+                        System.out.println("Certificate chain is trusted");
+                    else
+                        System.out.println("Certificate chain is UNTRUSTED");
                 }
             }
             catch (SocketException se)
@@ -673,6 +678,13 @@ catch (SSLPeerUnverifiedException e)
                 System.out.println("Error during connection handshake for protocols "
                                    + supportedProtocols
                                    + ": server likely does not support any of these protocols.");
+
+                if(showCerts)
+                    System.out.println("Unable to show server certificate without a successful handshake.");
+            } catch (SSLHandshakeException she) {
+                Throwable cause = she.getCause();
+                if(cause instanceof CertificateException)
+                    System.out.println("Server certificate is not trusted, cannot complete handshake. Try -no-check-certificate");
 
                 if(showCerts)
                     System.out.println("Unable to show server certificate without a successful handshake.");
@@ -794,6 +806,29 @@ outDone = true;
         sc.init(null, null, rand);
 
         return sc.getSocketFactory().getSupportedCipherSuites();
+    }
+
+    private static boolean checkTrust(X509Certificate[] chain, TrustManager[] trustManagers)
+    {
+        if(null == trustManagers)
+            return false;
+
+        if(1 == trustManagers.length
+           && trustManagers[0] instanceof SSLUtils.TrustAllTrustManager)
+            System.out.println("NOTE: Certificate chain will be trusted because all certificates are trusted");
+
+        for(TrustManager tm : trustManagers) {
+            if(tm instanceof X509TrustManager) {
+                try {
+                    ((X509TrustManager)tm).checkServerTrusted(chain, "RSA"); // TODO: Not always RSA?
+                    return true;
+                } catch (CertificateException ce) {
+                    return false;
+                }
+            }
+        }
+
+        return false;
     }
 
     static final char[] hexChars = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f' };
