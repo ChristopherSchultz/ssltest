@@ -52,6 +52,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 /**
@@ -264,7 +265,15 @@ public class SSLTest
             trustManagers = SSLUtils.getTrustManagers(trustStoreFilename, trustStorePassword, trustStoreType, trustStoreProvider, trustStoreAlgorithm, null, crlFilename);
         }
         else
-            trustManagers = null;
+        {
+            // Use platform default
+            TrustManagerFactory tmf = TrustManagerFactory
+                    .getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            // null keystore == default trust store
+            tmf.init((KeyStore)null);
+
+            trustManagers = tmf.getTrustManagers();
+        }
 
         int port = 443;
         String host = args[argIndex];
