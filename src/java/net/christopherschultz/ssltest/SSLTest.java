@@ -354,7 +354,7 @@ public class SSLTest
         if(Integer.MAX_VALUE > Cipher.getMaxAllowedKeyLength("foo"))
             System.err.println("[warning] Client is running under LIMITED cryptographic controls. Consider installing the JCE Unlimited Strength Jurisdiction Policy Files.");
 
-        SecureRandom rand = SecureRandom.getInstance("NativePRNG");
+        SecureRandom rand = new SecureRandom();
 
         if(!connectOnly) {
             System.out.println("Testing server " + host + ":" + port);
