@@ -26,8 +26,10 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.SecureRandom;
@@ -38,9 +40,11 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TreeSet;
 
 import javax.crypto.Cipher;
 import javax.net.ssl.KeyManager;
@@ -53,6 +57,7 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 
 /**
@@ -97,11 +102,13 @@ public class SSLTest
         System.out.println("-verify-hostname             Verifies certificate hostname (default: false)");
         System.out.println("-no-verify-hostname          Ignores hostname mismatches (default: true)");
 
+        System.out.println("-showcerts                   Show server's certificate chain information");
         System.out.println("-showsslerrors               Show SSL/TLS error details");
         System.out.println("-showhandshakeerrors         Show SSL/TLS handshake error details");
         System.out.println("-showerrors                  Show all connection error details");
         System.out.println("-hiderejects                 Only show protocols/ciphers which were successful");
         System.out.println();
+        System.out.println("-client-info                 Show this client's capabilities and exit");
         System.out.println("-h -help --help              Shows this help message");
     }
 
@@ -138,6 +145,7 @@ public class SSLTest
         boolean showHandshakeErrors = false;
         boolean showSSLErrors = false;
         boolean showErrors = false;
+        boolean dumpClientInfo = false;
 
         if(args.length < 1)
         {
@@ -204,6 +212,8 @@ public class SSLTest
                 connectOnly = true;
             else if("-hiderejects".equals(arg))
                 hideRejects = true;
+            else if("-client-info".equals(arg))
+                dumpClientInfo = true;
             else if("--help".equals(arg)
                     || "-h".equals(arg)
                     || "-help".equals(arg))
@@ -218,13 +228,27 @@ public class SSLTest
             }
         }
 
-        if(argIndex >= args.length)
-        {
+        int port = 443;
+        String host;
+
+        if(argIndex == args.length - 1) {
+            host = args[argIndex++];
+        } else if (argIndex < args.length) {
             System.err.println("Unexpected additional arguments: "
-                               + java.util.Arrays.asList(args).subList(argIndex, args.length));
+                               + java.util.Arrays.asList(args).subList(argIndex + 1, args.length));
 
             usage();
             System.exit(1);
+            host = "[unknown]";
+        } else if (dumpClientInfo) {
+            host = "[unknown]";
+        } else {
+            System.err.println("Expected hostname[:port]");
+
+            usage();
+
+            System.exit(1);
+            host = "[unknown]";
         }
 
         // TODO: Does this actually do anything?
@@ -275,8 +299,84 @@ public class SSLTest
             trustManagers = tmf.getTrustManagers();
         }
 
-        int port = 443;
-        String host = args[argIndex];
+        if(dumpClientInfo) {
+            System.out.println("Dumping Clilent Info");
+
+            SecureRandom rand = new SecureRandom();
+            String[] supportedCipherSuites = getJVMSupportedCipherSuites(sslProtocol, rand);
+            TreeSet<String> supportedCipherSuiteSet = new TreeSet<String>();
+            for(String cipherSuite : supportedCipherSuites)
+                supportedCipherSuiteSet.add(cipherSuite);
+
+            String[] defaultCipherSuites = getJVMDefaultCipherSuites(sslProtocol, rand);
+
+            HashSet<String> defaultCipherSuiteSet = new HashSet<String>(defaultCipherSuites.length);
+            for(String cipherSuite : defaultCipherSuites)
+                defaultCipherSuiteSet.add(cipherSuite);
+
+            System.out.println("Supported cipher suites:                            [Enabled by Default]");
+            for(String cipherSuite : supportedCipherSuiteSet) {
+                System.out.print("  ");
+                System.out.print(cipherSuite);
+                if(defaultCipherSuiteSet.contains(cipherSuite)) {
+                    for(int i=0; i<50 - cipherSuite.length(); ++i)
+                        System.out.print(' ');
+                    System.out.println('*');
+                } else {
+                    System.out.println();
+                }
+            }
+
+            System.out.println();
+
+            if(null != keyManagers) {
+                System.out.println("Available Client Keys:");
+                for(KeyManager keyManager : keyManagers) {
+                    if(keyManager instanceof X509KeyManager) {
+                        X509KeyManager xkm = (X509KeyManager)keyManager;
+
+                        String alias = xkm.chooseClientAlias(new String[] { "RSA", "DSA", "EC" }, null, null);
+                        boolean first = true;
+                        for(X509Certificate cert : xkm.getCertificateChain(alias)) {
+                            if(first) first = false;
+                            else System.out.println("===");
+                            dumpCertificate(cert);
+                        }
+                    } else {
+                        System.out.println(keyManager);
+                    }
+                }
+                System.out.println();
+            }
+            if(null == trustManagers) {
+                System.out.println("No trust managers installed?");
+            } else if(1 == trustManagers.length && Arrays.equals(trustManagers, SSLUtils.getTrustAllCertsTrustManagers())) {
+                System.out.println("[Trust All Server Certificates]");
+            } else {
+                for(TrustManager trustManager : trustManagers) {
+                    if(trustManager instanceof X509TrustManager) {
+                        X509TrustManager xtm = (X509TrustManager)trustManager;
+
+                        System.out.println("Trusted Certificates:");
+                        X509Certificate[] issuers = xtm.getAcceptedIssuers();
+                        if(null == issuers || 0 == issuers.length) {
+                            System.out.println("This trust manager evidently contains no trusted issuers, or the trust store could not be opened.");
+                        } else {
+                            boolean first = true;
+                            for(X509Certificate cert : issuers) {
+                                if(first) first = false;
+                                else System.out.println("===");
+                                dumpCertificate(cert);
+                            }
+                        }
+                    } else {
+                        System.out.println(trustManager);
+                    }
+                }
+            }
+            System.exit(1);
+
+        }
 
         int pos = host.indexOf(':');
         if(pos > 0)
@@ -650,25 +750,15 @@ catch (SSLPeerUnverifiedException e)
                 {
                     System.out.println("Attempting to check certificates:");
                     Certificate[] certs = socket.getSession().getPeerCertificates();
+                    int i = 1;
                     for(Certificate cert : certs)
                     {
                         String certType = cert.getType();
-                        System.out.println("Certificate: " + certType);
+                        System.out.println("Certificate " + (i++) + ": " + certType);
                         if("X.509".equals(certType))
                         {
                             X509Certificate x509 = (X509Certificate)cert;
-                            System.out.println("Subject: " + x509.getSubjectDN());
-                            System.out.println("Issuer: " + x509.getIssuerDN());
-                            System.out.println("Serial: " + x509.getSerialNumber());
-                            try {
-                                x509.checkValidity();
-                                System.out.println("Certificate is currently valid.");
-                            } catch (CertificateException ce) {
-                                System.out.println("WARNING: certificate is not valid: " + ce.getMessage());
-                            }
-                            //                   System.out.println("Signature: " + toHexString(x509.getSignature()));
-                            //                   System.out.println("cert bytes: " + toHexString(cert.getEncoded()));
-                            //                   System.out.println("cert bytes: " + cert.getPublicKey());
+                            dumpCertificate(x509);
                         }
                         else
                         {
@@ -818,6 +908,16 @@ outDone = true;
         return sc.getSocketFactory().getSupportedCipherSuites();
     }
 
+    private static String[] getJVMDefaultCipherSuites(String protocol, SecureRandom rand)
+            throws NoSuchAlgorithmException, KeyManagementException
+        {
+            SSLContext sc = SSLContext.getInstance(protocol);
+
+            sc.init(null, null, rand);
+
+            return sc.getSocketFactory().getDefaultCipherSuites();
+        }
+
     private static boolean checkTrust(X509Certificate[] chain, TrustManager[] trustManagers)
     {
         if(null == trustManagers)
@@ -841,14 +941,37 @@ outDone = true;
         return false;
     }
 
+    static void dumpCertificate(X509Certificate cert) throws GeneralSecurityException {
+        System.out.print("  Subject: ");
+        System.out.println(cert.getSubjectDN());
+
+        System.out.print("  Issuer: ");
+        System.out.println(cert.getIssuerDN());
+
+        System.out.print("  SHA-256 Fingerprint: ");
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+
+        byte[] sig = md.digest(cert.getEncoded());
+
+        System.out.println(toHexString(sig, ":"));
+
+        System.out.println("  Valid from " + cert.getNotBefore() + " until " + cert.getNotAfter());
+        Date now = new Date();
+        System.out.println("  Currently valid: " + (cert.getNotBefore().before(now) && cert.getNotAfter().after(now)));
+    }
+
     static final char[] hexChars = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f' };
-    static String toHexString(byte[] bytes)
+    static String toHexString(byte[] bytes, String separator)
     {
         StringBuilder sb = new StringBuilder(bytes.length * 2);
 
-        for(byte b : bytes)
+        boolean first = true;
+        for(byte b : bytes) {
+            if(first) first = false;
+            else if(null != separator) sb.append(separator);
             sb.append(hexChars[(b >> 4) & 0x0f])
               .append(hexChars[b & 0x0f]);
+        }
 
         return sb.toString();
     }
