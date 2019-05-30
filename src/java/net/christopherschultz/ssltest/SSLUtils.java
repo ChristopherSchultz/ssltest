@@ -99,6 +99,11 @@ public class SSLUtils
                                        String authType) {
             // Trust all servers
         }
+
+        public boolean equals(Object o) {
+            // All TrustAllTrustManagers are equivalent
+            return (o.getClass().equals(this.getClass()));
+        }
     }
     public static void disableSSLHostnameVerification()
     {
@@ -113,7 +118,7 @@ public class SSLUtils
     {
         return trustAllCerts.clone();
     }
-    
+
     /**
      * Creates an SSLSocketFactory that supports only the specified protocols
      * and ciphers.
@@ -147,7 +152,7 @@ public class SSLUtils
     /**
      * In order to customize the specific enabled protocols and cipher suites,
      * a customized SSLSocketFactory must be used.
-     * 
+     *
      * This is just a wrapper around that customization.
      */
     public static class CustomSSLSocketFactory
@@ -192,7 +197,7 @@ public class SSLUtils
 
             return socket;
         }
-        
+
         @Override
         public Socket createSocket(Socket s,
                                    String host,
