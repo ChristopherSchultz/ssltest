@@ -32,13 +32,20 @@ import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.DSAParams;
+import java.security.interfaces.DSAPublicKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.ECParameterSpec;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -754,15 +761,15 @@ catch (SSLPeerUnverifiedException e)
                     for(Certificate cert : certs)
                     {
                         String certType = cert.getType();
-                        System.out.println("Certificate " + (i++) + ": " + certType);
                         if("X.509".equals(certType))
                         {
+                            System.out.println("Certificate " + (i++) + ": " + getCertificateType((X509Certificate)cert));
                             X509Certificate x509 = (X509Certificate)cert;
                             dumpCertificate(x509);
                         }
                         else
                         {
-                            System.out.println("Unknown certificate type (" + cert.getType() + "): " + cert);
+                            System.out.println("Unknown certificate type (" + certType + "): " + cert);
                         }
                     }
 
@@ -944,9 +951,34 @@ outDone = true;
     static void dumpCertificate(X509Certificate cert) throws GeneralSecurityException {
         System.out.print("  Subject: ");
         System.out.println(cert.getSubjectDN());
+        Collection<List<?>> altNames = cert.getSubjectAlternativeNames();
+        if(null != altNames && !altNames.isEmpty()) {
+            System.out.print("Subject Alternative Names (SANs): ");
+
+            // NOTE: cert.getSubjectAlternativeNames is a really bad API
+            boolean needsComma = false;
+            for(List<?> sanList : altNames) {
+               if(null != sanList && !sanList.isEmpty() && sanList.size() > 1) {
+                   if(needsComma) System.out.print(", ");
+                   else needsComma = true;
+                   // Ignore sanList[0]
+                   // sanList[1] is either a String or a byte array :(
+                   Object thing = sanList.get(1);
+                   if(thing instanceof String) {
+                       System.out.print(thing);
+                   } else {
+                       System.out.print("[binary]"); // TODO
+                   }
+               }
+            }
+            System.out.println();
+        }
 
         System.out.print("  Issuer: ");
         System.out.println(cert.getIssuerDN());
+
+        System.out.print("  Signature Algorithm: ");
+        System.out.println(cert.getSigAlgName());
 
         System.out.print("  SHA-256 Fingerprint: ");
         MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -958,6 +990,30 @@ outDone = true;
         System.out.println("  Valid from " + cert.getNotBefore() + " until " + cert.getNotAfter());
         Date now = new Date();
         System.out.println("  Currently valid: " + (cert.getNotBefore().before(now) && cert.getNotAfter().after(now)));
+    }
+
+    static String getCertificateType(X509Certificate cert) {
+        PublicKey pubKey = cert.getPublicKey();
+
+        if(pubKey instanceof RSAPublicKey) {
+            return ((RSAPublicKey)pubKey).getModulus().bitLength() + "-bit RSA";
+        } else if(pubKey instanceof ECPublicKey) {
+            ECParameterSpec params = ((ECPublicKey)pubKey).getParams();
+            if(null != params) {
+                return params.getOrder().bitLength() + "-bit Elliptic-curve";
+            } else {
+                return "Unknown strength Elliptic-curve";
+            }
+        } else if(pubKey instanceof DSAPublicKey) {
+            DSAParams params = ((DSAPublicKey)pubKey).getParams();
+            if(null != params) {
+                return params.getP().bitLength() + "-bit DSA";
+            } else {
+                return ((DSAPublicKey)pubKey).getY().bitLength() + "-bit DSA";
+            }
+        } else {
+            return "Other X.509 key, class=" + pubKey.getClass().getName();
+        }
     }
 
     static final char[] hexChars = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f' };
