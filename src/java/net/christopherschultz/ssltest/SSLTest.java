@@ -20,6 +20,7 @@
 package net.christopherschultz.ssltest;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -51,7 +52,10 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import javax.crypto.Cipher;
 import javax.net.ssl.KeyManager;
@@ -90,6 +94,7 @@ public class SSLTest
         System.out.println("-sslprotocol                 Sets the SSL/TLS protocol to be used (e.g. SSL, TLS, SSLv3, TLSv1.2, etc.)");
         System.out.println("-enabledprotocols protocols  Sets individual SSL/TLS ptotocols that should be enabled");
         System.out.println("-ciphers cipherspec          A comma-separated list of SSL/TLS ciphers");
+        System.out.println("-cipherFilter filter         A regular expression containing cipher suite patterns which should be REMOVED from the acceptable list (e.g. '(NULL|anon|RC4)')");
         System.out.println("-connectonly                 Don't scan; only connect a single time");
 
         System.out.println("-keystore                    Sets the key store for connections (for TLS client certificates)");
@@ -125,6 +130,7 @@ public class SSLTest
         // Enable all algorithms + protocols
         // System.setProperty("jdk.tls.client.protocols", "SSLv2Hello,SSLv3,TLSv1,TLSv1.1,TLSv1.2");
         Security.setProperty("jdk.tls.disabledAlgorithms", "");
+        //System.setProperty("jdk.tls.namedGroups", "secp256r1, secp384r1, secp521r1, sect283k1, sect283r1, sect409k1, sect409r1, sect571k1, sect571r1, secp256k1");
         Security.setProperty("crypto.policy", "unlimited"); // For Java 9+
 
         int connectTimeout = 0; // default = infinite
@@ -146,6 +152,7 @@ public class SSLTest
         String sslProtocol = "TLS";
         String[] sslEnabledProtocols = null; // new String[] { "SSLv2", "SSLv2hello", "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2" };
         String[] sslCipherSuites = null; // Default = default for protocol
+        Pattern sslCipherSuitesFilter = null;
         String crlFilename = null;
         boolean showCerts = false;
         boolean connectOnly = false;
@@ -183,6 +190,14 @@ public class SSLTest
                 sslEnabledProtocols = args[++argIndex].split("\\s*,\\s*");
             else if("-ciphers".equals(arg))
                 sslCipherSuites = args[++argIndex].split("\\s*,\\s*");
+            else if("-cipherFilter".equals(arg)) {
+                try {
+                    sslCipherSuitesFilter = Pattern.compile(args[++argIndex]);
+                } catch (PatternSyntaxException pse) {
+                    System.err.println("Invalid cipher filter pattern: " + pse.getMessage());
+                    System.exit(1);
+                }
+            }
             else if("-connecttimeout".equals(arg))
                 connectTimeout = Integer.parseInt(args[++argIndex]);
             else if("-readtimeout".equals(arg))
@@ -221,6 +236,10 @@ public class SSLTest
                 hideRejects = true;
             else if("-client-info".equals(arg))
                 dumpClientInfo = true;
+            else if("-list-curves".equals(arg)) {
+                listCurves(System.out);
+                return;
+            }
             else if("--help".equals(arg)
                     || "-h".equals(arg)
                     || "-help".equals(arg))
@@ -256,6 +275,11 @@ public class SSLTest
 
             System.exit(1);
             host = "[unknown]";
+        }
+
+        if(null != sslCipherSuites && null != sslCipherSuitesFilter) {
+            System.err.println("The -ciphers and -cipherFilter are mutually-exclusive. Please specify only one of the two.");
+            System.exit(1);
         }
 
         // TODO: Does this actually do anything?
@@ -502,6 +526,15 @@ public class SSLTest
             cipherSuites.addAll(Arrays.asList(supportedCipherSuites));
             if(null != sslCipherSuites)
                 cipherSuites.retainAll(Arrays.asList(sslCipherSuites));
+            else if(null != sslCipherSuitesFilter) {
+                for(Iterator<String> j=cipherSuites.iterator(); j.hasNext(); ) {
+                    String cipherSuite = j.next();
+
+                    if(sslCipherSuitesFilter.matcher(cipherSuite).find()) {
+                        j.remove();
+                    }
+                }
+            }
 
             if(cipherSuites.isEmpty())
             {
@@ -878,6 +911,24 @@ outDone = true;
             System.out.println("!!! host " + host + " supports SSLv2");
         }
 */
+    }
+
+    public static void listCurves(PrintStream out) throws Exception {
+        Provider[] ecProviders = Security.getProviders("AlgorithmParameters.EC");
+        if(null != ecProviders) {
+            for(Provider provider : ecProviders) {
+                // Unfortunately, we have to parse this string
+                out.println("Provider: " + provider);
+                String list = provider.getService("AlgorithmParameters", "EC").getAttribute("SupportedCurves");
+                // Be nice and sort the list of curves
+                TreeMap<String,String> sorted = new TreeMap<String,String>();
+                for(String curve : list.split("\\|"))
+                    sorted.put(curve.toLowerCase(), curve);
+                for(String curve : sorted.values())
+                    out.println(curve);
+            }
+        }
+
     }
 
     private static SSLSocket createSSLSocket(InetSocketAddress address,
