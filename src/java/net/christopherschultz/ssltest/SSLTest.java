@@ -26,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
@@ -89,7 +90,29 @@ public class SSLTest
 {
     private static void usage()
     {
-        System.out.println("Usage: java " + SSLTest.class + " [opts] host[:port]");
+        String command;
+        // Are we running from a JAR file? What's it's name?
+        URL url = SSLTest.class.getClassLoader().getResource("META-INF/MANIFEST.MF");
+        if(null != url && "jar".equals(url.getProtocol())) {
+            // Loaded from a JAR file; probably executable
+            // jar file name is between first ! and previous / or : of the URL's path
+            String source = url.getPath();
+            source = source.substring(0, source.indexOf('!'));
+            int pos = source.lastIndexOf('/');
+            if(pos < 0) {
+                pos = source.lastIndexOf(":");
+            }
+            if(pos < -1) {
+                pos = -1;
+            }
+            source = source.substring(pos + 1);
+
+            command = "-jar " + source;
+        } else {
+            command = SSLTest.class.getName();
+        }
+
+        System.out.println("Usage: java " + command + " [opts] host[:port]");
         System.out.println();
         System.out.println("-sslprotocol                 Sets the SSL/TLS protocol to be used (e.g. SSL, TLS, SSLv3, TLSv1.2, etc.)");
         System.out.println("-enabledprotocols protocols  Sets individual SSL/TLS ptotocols that should be enabled");
