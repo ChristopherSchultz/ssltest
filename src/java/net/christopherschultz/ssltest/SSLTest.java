@@ -21,6 +21,7 @@ package net.christopherschultz.ssltest;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -38,6 +39,7 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.DSAParams;
@@ -1064,6 +1066,63 @@ outDone = true;
         System.out.println("  Valid from " + cert.getNotBefore() + " until " + cert.getNotAfter());
         Date now = new Date();
         System.out.println("  Currently valid: " + (cert.getNotBefore().before(now) && cert.getNotAfter().after(now)));
+        String encoded = getEncodedCertificate(cert);
+        if(null != encoded) {
+            System.out.println(encoded);
+        }
+    }
+
+    static String getEncodedCertificate(Certificate cert) throws CertificateEncodingException {
+        String encoded = base64Encode(cert.getEncoded());
+        if(null == encoded) {
+            return null;
+        } else {
+            return new StringBuilder("-----BEGIN CERTIFICATE-----\n")
+                    .append(encoded)
+                    .append("\n-----END CERTIFICATE-----")
+                    .toString()
+                    ;
+        }
+    }
+
+    static String base64Encode(byte[] bytes) {
+        // YUCK: Plumbing for a base64 encoder is really ugly.
+        //
+        // This is being done so we can compile this source file
+        // on Java 1.1 - 1.7 (using the sun.mistc encoder)
+        // or on 1.8 or later (using the java.util encoder)
+        // without any errors.
+
+        try {
+            Class<?> b64 = Class.forName("java.util.Base64");
+
+            Method m = b64.getMethod("getMimeEncoder", new Class[] { int.class, byte[].class } );
+
+            Object enc = m.invoke(null, 64, new byte[] { '\n' });
+
+            m = enc.getClass().getMethod("encodeToString", new Class[] { byte[].class });
+
+            return (String)m.invoke(enc, bytes);
+        } catch (ClassNotFoundException cnfe) {
+            // Old-school base64 encoder available?
+            try {
+                Class<?> b64 = Class.forName("sun.misc.BASE64Encoder");
+
+                Object enc = b64.getDeclaredConstructor().newInstance();
+
+                Method m = b64.getMethod("encode", new Class[] { byte[].class } );
+
+                return (String)m.invoke(enc, bytes);
+            } catch (Exception e) {
+                // Give up
+                return null;
+            }
+        } catch (Exception e) {
+            // Give up
+            e.printStackTrace();
+
+            return null;
+        }
     }
 
     static String getCertificateType(X509Certificate cert) {
