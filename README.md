@@ -21,6 +21,8 @@ Usage: java class SSLTest [opts] host[:port]
 -sslprotocol                 Sets the SSL/TLS protocol to be used (e.g. SSL, TLS, SSLv3, TLSv1.2, etc.)
 -enabledprotocols protocols  Sets individual SSL/TLS ptotocols that should be enabled
 -ciphers cipherspec          A comma-separated list of SSL/TLS ciphers
+-cipherFilter filter         A regular expression containing cipher suite patterns which should be REMOVED from the acceptable list (e.g. '(NULL|anon|RC4)')
+-connectonly                 Don't scan; only connect a single time
 -keystore                    Sets the key store for connections (for TLS client certificates)
 -keystoretype type           Sets the type for the key store
 -keystorepassword pass       Sets the password for the key store
@@ -30,10 +32,17 @@ Usage: java class SSLTest [opts] host[:port]
 -truststorepassword pass     Sets the password for the trust store
 -truststorealgorithm alg     Sets the algorithm for the trust store
 -truststoreprovider provider Sets the crypto provider for the trust store
--no-check-certificate        Ignores certificate errors
--no-verify-hostname          Ignores hostname mismatches
+-crlfilename                 Sets the CRL filename to use for the trust store
+-check-certificate           Checks certificate trust (default: false)
+-no-check-certificate        Ignores certificate errors (default: true)
+-verify-hostname             Verifies certificate hostname (default: false)
+-no-verify-hostname          Ignores hostname mismatches (default: true)
+-showcerts                   Show server's certificate chain information
 -showsslerrors               Show SSL/TLS error details
 -showhandshakeerrors         Show SSL/TLS handshake error details
 -showerrors                  Show all connection error details
 -hiderejects                 Only show protocols/ciphers which were successful
+
+-client-info                 Show this client's capabilities and exit
+-h -help --help              Shows this help message
 ```
