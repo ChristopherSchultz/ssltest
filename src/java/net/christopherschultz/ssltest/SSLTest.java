@@ -370,6 +370,12 @@ public class SSLTest
             for(String cipherSuite : defaultCipherSuites)
                 defaultCipherSuiteSet.add(cipherSuite);
 
+            System.out.println("Supported TLS Protocols: ");
+            for(String protocol : getJVMSupportedProtocols(sslProtocol, rand)) {
+                System.out.print("  ");
+                System.out.println(protocol);
+            }
+
             System.out.println("Supported cipher suites:                            [Enabled by Default]");
             for(String cipherSuite : supportedCipherSuiteSet) {
                 System.out.print("  ");
@@ -1001,6 +1007,16 @@ outDone = true;
             return sc.getSocketFactory().getDefaultCipherSuites();
         }
 
+    private static String[] getJVMSupportedProtocols(String protocol, SecureRandom rand)
+        throws NoSuchAlgorithmException, KeyManagementException
+    {
+        SSLContext sc = SSLContext.getInstance(protocol);
+
+        sc.init(null, null, rand);
+
+        return sc.getSupportedSSLParameters().getProtocols();
+    }
+
     private static boolean checkTrust(X509Certificate[] chain, TrustManager[] trustManagers)
     {
         if(null == trustManagers)
@@ -1052,6 +1068,16 @@ outDone = true;
 
         System.out.print("  Issuer: ");
         System.out.println(cert.getIssuerDN());
+        if(null != cert.getIssuerUniqueID()
+           && null != cert.getSubjectUniqueID()
+           && Arrays.equals(cert.getIssuerUniqueID(), cert.getSubjectUniqueID())) {
+            System.out.println("Subject unique id: ");
+            for(boolean b : cert.getSubjectUniqueID()) {
+                System.out.print(b ? 1 : 0);
+            }
+            System.out.println();
+            System.out.println("         (Self-Signed Certificate)");
+        }
 
         System.out.print("  Signature Algorithm: ");
         System.out.println(cert.getSigAlgName());
