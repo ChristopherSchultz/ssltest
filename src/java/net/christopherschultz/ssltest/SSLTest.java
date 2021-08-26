@@ -390,6 +390,12 @@ public class SSLTest
             }
 
             System.out.println();
+            System.out.println("Supported Elliptic Curves, by provider:");
+            System.out.println();
+
+            listCurves(System.out);
+
+            System.out.println();
 
             if(null != keyManagers) {
                 System.out.println("Available Client Keys:");
