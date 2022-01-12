@@ -1043,8 +1043,10 @@ outDone = true;
 
     private static boolean checkTrust(X509Certificate[] chain, TrustManager[] trustManagers)
     {
-        if(null == trustManagers)
+        if(null == trustManagers) {
+            System.out.println("NOTE: No trust managers configured; all certs will appear to be 'untrusted'");
             return false;
+        }
 
         if(1 == trustManagers.length
            && trustManagers[0] instanceof SSLUtils.TrustAllTrustManager)
@@ -1056,6 +1058,7 @@ outDone = true;
                     ((X509TrustManager)tm).checkServerTrusted(chain, "RSA"); // TODO: Not always RSA?
                     return true;
                 } catch (CertificateException ce) {
+                    System.out.println("INFO: Certificate chain " + java.util.Arrays.asList(chain) + " was found to be untrusted by tru st manager " + tm);
                     return false;
                 }
             }
