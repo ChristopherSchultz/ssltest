@@ -152,11 +152,25 @@ public class SSLTest
     public static void main(String[] args)
         throws Exception
     {
-        // Enable all algorithms + protocols
+        /*
+        System.out.println("a:" + System.getProperty("jdk.tls.namedCurves"));
+        System.out.println("b:" + Security.getProperty("jdk.tls.namedCurves"));
+        System.out.println("c:" + System.getProperty("jdk.disabled.namedCurves"));
+        System.out.println("d:" + Security.getProperty("jdk.disabled.namedCurves"));
+        System.out.println("a:" + System.getProperty("jdk.tls.NamedCurves"));
+        System.out.println("b:" + Security.getProperty("jdk.tls.NamedCurves"));
+        System.out.println("c:" + System.getProperty("jdk.disabled.NamedCurves"));
+        System.out.println("d:" + Security.getProperty("jdk.disabled.NamedCurves"));
+*/
+        // Enable all algorithms, protocols, and curves
         // System.setProperty("jdk.tls.client.protocols", "SSLv2Hello,SSLv3,TLSv1,TLSv1.1,TLSv1.2");
         Security.setProperty("jdk.tls.disabledAlgorithms", "");
-        //System.setProperty("jdk.tls.namedGroups", "secp256r1, secp384r1, secp521r1, sect283k1, sect283r1, sect409k1, sect409r1, sect571k1, sect571r1, secp256k1");
+//        System.setProperty("jdk.tls.namedGroups", "secp256r1, secp384r1, secp521r1, sect283k1, sect283r1, sect409k1, sect409r1, sect571k1, sect571r1, secp256k1");
+        System.setProperty("jdk.disabled.namedCurves", "");
         Security.setProperty("crypto.policy", "unlimited"); // For Java 9+
+
+        // https://seanjmullan.org/blog/2020/10/13/jdk15
+        System.setProperty("jdk.sunec.disableNative", "false");
 
         int connectTimeout = 0; // default = infinite
         int readTimeout = 1000;
@@ -843,11 +857,15 @@ catch (SSLPeerUnverifiedException e)
                         }
                     }
 
-                    if(certs instanceof X509Certificate[]
-                       && checkTrust((X509Certificate[])certs, trustManagers))
-                        System.out.println("Certificate chain is trusted");
-                    else
-                        System.out.println("Certificate chain is UNTRUSTED");
+                    if(certs instanceof X509Certificate[]) {
+                        if(checkTrust((X509Certificate[])certs, trustManagers)) {
+                            System.out.println("Certificate chain is trusted");
+                        } else {
+                            System.out.println("Certificate chain is UNTRUSTED");
+                        }
+                    } else {
+                        System.out.println("Cannot check certificate chain; not X509Certificate array");
+                    }
                 }
             }
             catch (SocketException se)
