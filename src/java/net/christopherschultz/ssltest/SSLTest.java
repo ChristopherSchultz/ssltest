@@ -161,10 +161,16 @@ public class SSLTest
         System.out.println("b:" + Security.getProperty("jdk.tls.NamedCurves"));
         System.out.println("c:" + System.getProperty("jdk.disabled.NamedCurves"));
         System.out.println("d:" + Security.getProperty("jdk.disabled.NamedCurves"));
+
+        jdk.certpath.disabledAlgorithms
+        jdk.tls.disabledAlgorithms
 */
         // Enable all algorithms, protocols, and curves
         // System.setProperty("jdk.tls.client.protocols", "SSLv2Hello,SSLv3,TLSv1,TLSv1.1,TLSv1.2");
         Security.setProperty("jdk.tls.disabledAlgorithms", "");
+        System.setProperty("jdk.tls.disabledAlgorithms", "");
+//        System.setProperty("jdk.tls.ephemeralDHKeySize", "1024");
+        Security.setProperty("jdk.security.legacyAlgorithms", "");
 //        System.setProperty("jdk.tls.namedGroups", "secp256r1, secp384r1, secp521r1, sect283k1, sect283r1, sect409k1, sect409r1, sect571k1, sect571r1, secp256k1");
         System.setProperty("jdk.disabled.namedCurves", "");
         Security.setProperty("crypto.policy", "unlimited"); // For Java 9+
@@ -830,17 +836,18 @@ catch (SSLPeerUnverifiedException e)
             {
                 socket.startHandshake();
 
+                SSLSession sess = socket.getSession();
                 System.out.print("Given this client's capabilities ("
                         + supportedProtocols
                         + "), the server prefers protocol=");
-                System.out.print(socket.getSession().getProtocol());
+                System.out.print(sess.getProtocol());
                 System.out.print(", cipher=");
-                System.out.println(socket.getSession().getCipherSuite());
+                System.out.println(sess.getCipherSuite());
 
                 if(showCerts)
                 {
                     System.out.println("Attempting to check certificates:");
-                    Certificate[] certs = socket.getSession().getPeerCertificates();
+                    Certificate[] certs = sess.getPeerCertificates();
                     int i = 1;
                     for(Certificate cert : certs)
                     {
@@ -858,7 +865,7 @@ catch (SSLPeerUnverifiedException e)
                     }
 
                     if(certs instanceof X509Certificate[]) {
-                        if(checkTrust((X509Certificate[])certs, trustManagers)) {
+                        if(checkTrust((X509Certificate[])certs, trustManagers, getAuthType(sess.getCipherSuite()))) {
                             System.out.println("Certificate chain is trusted");
                         } else {
                             System.out.println("Certificate chain is UNTRUSTED");
@@ -1041,7 +1048,54 @@ outDone = true;
         return sc.getSupportedSSLParameters().getProtocols();
     }
 
-    private static boolean checkTrust(X509Certificate[] chain, TrustManager[] trustManagers)
+    private static String getAuthType(String cipherSuite) {
+        // Looks like we can just use "UNKNOWN" all the time and Java will
+        // figure it out.
+        return "UNKNOWN";
+
+/*
+        if(cipherSuite.startsWith("TLS_")
+           || cipherSuite.startsWith("SSL_")) {
+            // DHE_DSS DHE_RSA DH_DSS DH_RSA ECDHE_ECDSA ECDHE_RSA ECDH_ECDSA ECDH_RSA RSA RSA_EXPORT UNKNOWN
+            int pos = cipherSuite.indexOf("_WITH_");
+            if(pos > 0) {
+                return cipherSuite.substring(4, pos);
+            } else {
+                // TLSv1.3 ciphers don't have _WITH_ anymore and always use ECDHE_E
+                return "UNKNOWN";
+            }
+        } else {
+            throw new IllegalArgumentException("Cannot determine auth type from unrecognizerd cipher suite: " + cipherSuite);
+        }
+*/
+/*
+        if(cipherSuite.startsWith("TLS_")
+           || cipherSuite.startsWith("SSL_")) {
+            // DHE_DSS DHE_RSA DH_DSS DH_RSA ECDHE_ECDSA ECDHE_RSA ECDH_ECDSA ECDH_RSA RSA RSA_EXPORT UNKNOWN
+            if(cipherSuite.startsWith("ECDHE_ECDSA_")) {
+                return "ECDHE_ESDSA";
+            } else if(cipherSuite.startsWith("ECDHE_RSA_")) {
+                return "ECDHE_RSA";
+            } else if(cipherSuite.startsWith("ECDH_ECDSA_")) {
+                return "ECDH_ESDSA";
+            } else if(cipherSuite.startsWith("RSA_EXPORT_")) {
+                return "RSA_EXPORT";
+            } else if(cipherSuite.startsWith("RSA_")) {
+                return "RSA";
+            } else if(cipherSuite.startsWith("")) {
+                return "";
+            } else if(cipherSuite.startsWith("")) {
+                return "";
+            } else {
+                throw new UnsupportedOperationException("Cannot determine auth type from cipher suite: " + cipherSuite);
+            }
+        } else {
+            throw new IllegalArgumentException("Cannot determine auth type from unrecognizerd cipher suite: " + cipherSuite);
+        }
+*/
+    }
+
+    private static boolean checkTrust(X509Certificate[] chain, TrustManager[] trustManagers, String authType)
     {
         if(null == trustManagers) {
             System.out.println("NOTE: No trust managers configured; all certs will appear to be 'untrusted'");
@@ -1055,10 +1109,22 @@ outDone = true;
         for(TrustManager tm : trustManagers) {
             if(tm instanceof X509TrustManager) {
                 try {
-                    ((X509TrustManager)tm).checkServerTrusted(chain, "RSA"); // TODO: Not always RSA?
+                    ((X509TrustManager)tm).checkServerTrusted(chain, authType);
                     return true;
                 } catch (CertificateException ce) {
-                    System.out.println("INFO: Certificate chain " + java.util.Arrays.asList(chain) + " was found to be untrusted by tru st manager " + tm);
+                    // Check the whole chain to see where we failed
+                    for(X509Certificate cert : chain) {
+                        try {
+                            ((X509TrustManager)tm).checkServerTrusted(new X509Certificate[] { cert }, authType);
+                            System.out.println("Cert " + cert.getSubjectX500Principal().getName() + " is trusted");
+                        } catch (CertificateException ce2) {
+                            System.out.println("Cert " + cert.getSubjectX500Principal().getName() + " is UNTRUSTED");
+                        }
+                    }
+
+                    for(X509Certificate ca : ((X509TrustManager)tm).getAcceptedIssuers()) {
+                        System.out.println("Would have trusted " + ca.getSubjectX500Principal().getName());
+                    }
                     return false;
                 }
             }
